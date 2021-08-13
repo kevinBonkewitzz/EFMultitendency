@@ -1,4 +1,6 @@
 using Infrastructure.Data;
+using Infrastructure.Interfaces;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +22,15 @@ namespace EFMultitendency
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<ApplicationDbContext>();
+            services.AddScoped<ITenantService, TenantService>();
+
             string conn = Configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(conn));
+            services.AddOptions<ApplicationTenantConfig>().Bind(Configuration.GetSection("Tenants"));
 
             services.AddControllers();
+            services.AddHttpContextAccessor();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,6 +49,7 @@ namespace EFMultitendency
             {
                 endpoints.MapControllers();
             });
+
         }
     }
 }
