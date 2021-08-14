@@ -1,0 +1,59 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+  
+stages:
+  - stage: 'Build'
+    jobs:
+    - job: Build
+      variables:
+        solution: '**/*.sln'
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+      steps:
+      - task: NuGetCommand@2
+        inputs:
+          command: 'restore'
+          restoreSolution: '**/*.sln'
+          feedsToUse: 'select'
+      - task: DotNetCoreCLI@2
+        displayName: Build
+        inputs:
+          command: 'build'
+          projects: '**/*.csproj'
+          arguments: '--configuration $(buildConfiguration)'
+      - task: DotNetCoreCLI@2
+        displayName: Publish Projects
+        inputs:
+          command: 'publish'
+          publishWebProjects: false
+          projects: |
+            Mir/*.csproj
+          arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Build Artifacts
+        condition: and(succeeded(), in(variables['Build.SourceBranchName'], 'master'))
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          artifactName: 'drop'
+          publishLocation: 'Container'
+  - stage: 'Staging'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
+    jobs:
+      - deployment: EFMultitenancy
+        environment: EFMultitenancy-Staging
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: Deploy API
+                  inputs:
+                    azureSubscription: 'Espada-Trial(481b941b-291b-4716-8610-6999d82e0fc1)'
+                    appType: 'webApp'
+                    appName: 'EFMultitenancy'
+                    package: '$(Pipeline.Workspace)/**/EFMultitenancy.zip'
+                    deploymentMethod: 'auto'
