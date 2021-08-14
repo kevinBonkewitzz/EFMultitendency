@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Linq;
 
 namespace EFMultitendency
 {
@@ -34,11 +35,19 @@ namespace EFMultitendency
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IConfiguration configuration, ApplicationDbContext dbContext)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+            }
+
+            var dbConnStrings = configuration.GetSection("ConnectionStrings").GetChildren().Where(s => s.Key.StartsWith("ConnectionTenant")).Select(s => s.Value).ToArray();
+            foreach (var connString in dbConnStrings)
+            {
+                var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connString);
+                var dba = new ApplicationDbContext(optionsBuilder.Options);
+                dba.Database.Migrate();
             }
 
             app.UseHttpsRedirection();
