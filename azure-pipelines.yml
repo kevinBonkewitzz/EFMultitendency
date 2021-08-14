@@ -30,7 +30,7 @@ stages:
           command: 'publish'
           publishWebProjects: false
           projects: |
-            Mir/*.csproj
+            EFMultitendency/*.csproj
           arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
       - task: PublishBuildArtifacts@1
         displayName: Publish Build Artifacts
@@ -54,6 +54,6 @@ stages:
                   inputs:
                     azureSubscription: 'Espada-Trial(481b941b-291b-4716-8610-6999d82e0fc1)'
                     appType: 'webApp'
-                    appName: 'EFMultitenancy'
+                    appName: 'Test-API-Multitenancy'
                     package: '$(Pipeline.Workspace)/**/EFMultitenancy.zip'
                     deploymentMethod: 'auto'
